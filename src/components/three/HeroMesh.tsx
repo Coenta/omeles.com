@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { getGlobalMouse } from "@/hooks/useGlobalMouse";
 
 export default function HeroMesh() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
-  const mouseRef = useRef({ x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 });
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -76,45 +76,7 @@ export default function HeroMesh() {
     resize();
     window.addEventListener("resize", resize);
 
-    const onMouse = (e: MouseEvent) => {
-      mouseRef.current.tx = e.clientX / window.innerWidth;
-      mouseRef.current.ty = e.clientY / window.innerHeight;
-    };
-    window.addEventListener("mousemove", onMouse);
-
-    // Touch support
-    const onTouch = (e: TouchEvent) => {
-      const t = e.touches[0];
-      if (t) {
-        mouseRef.current.tx = t.clientX / window.innerWidth;
-        mouseRef.current.ty = t.clientY / window.innerHeight;
-      }
-    };
-    window.addEventListener("touchmove", onTouch, { passive: true });
-
-    // Gyroscope support
-    const onOrientation = (e: DeviceOrientationEvent) => {
-      const gamma = e.gamma ?? 0;
-      const beta = e.beta ?? 0;
-      mouseRef.current.tx = Math.min(1, Math.max(0, (gamma + 30) / 60));
-      mouseRef.current.ty = Math.min(1, Math.max(0, (beta - 30) / 60));
-    };
-
-    if (
-      typeof DeviceOrientationEvent !== "undefined" &&
-      typeof (DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> }).requestPermission === "function"
-    ) {
-      const request = (DeviceOrientationEvent as unknown as { requestPermission: () => Promise<string> }).requestPermission;
-      const requestOnce = () => {
-        request().then((state) => {
-          if (state === "granted") window.addEventListener("deviceorientation", onOrientation);
-        }).catch(() => {});
-        window.removeEventListener("touchstart", requestOnce);
-      };
-      window.addEventListener("touchstart", requestOnce, { once: true });
-    } else {
-      window.addEventListener("deviceorientation", onOrientation);
-    }
+    const globalMouse = getGlobalMouse();
 
     let time = 0;
 
@@ -122,14 +84,11 @@ export default function HeroMesh() {
       if (document.hidden) { animRef.current = requestAnimationFrame(render); return; }
 
       time += 0.003;
-      const m = mouseRef.current;
-      m.x += (m.tx - m.x) * 0.02;
-      m.y += (m.ty - m.y) * 0.02;
 
-      const offX = m.x - 0.5;
-      const offY = m.y - 0.5;
-      const mx = m.x * W;
-      const my = m.y * H;
+      const offX = globalMouse.smoothX - 0.5;
+      const offY = globalMouse.smoothY - 0.5;
+      const mx = globalMouse.smoothX * W;
+      const my = globalMouse.smoothY * H;
       const mR = isMobile ? 80 : 180 * dpr;
       const mR2 = mR * mR;
 
@@ -246,9 +205,6 @@ export default function HeroMesh() {
     return () => {
       cancelAnimationFrame(animRef.current);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("mousemove", onMouse);
-      window.removeEventListener("touchmove", onTouch);
-      window.removeEventListener("deviceorientation", onOrientation);
     };
   }, [mounted]);
 

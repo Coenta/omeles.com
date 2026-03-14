@@ -66,6 +66,40 @@ export default function HeroMesh() {
     };
     window.addEventListener("mousemove", onMouse);
 
+    // Touch support
+    const onTouch = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (t) {
+        mouseRef.current.tx = t.clientX / window.innerWidth;
+        mouseRef.current.ty = t.clientY / window.innerHeight;
+      }
+    };
+    window.addEventListener("touchmove", onTouch, { passive: true });
+
+    // Gyroscope support
+    const onOrientation = (e: DeviceOrientationEvent) => {
+      const gamma = e.gamma ?? 0;
+      const beta = e.beta ?? 0;
+      mouseRef.current.tx = Math.min(1, Math.max(0, (gamma + 30) / 60));
+      mouseRef.current.ty = Math.min(1, Math.max(0, (beta - 30) / 60));
+    };
+
+    if (
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof (DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> }).requestPermission === "function"
+    ) {
+      const request = (DeviceOrientationEvent as unknown as { requestPermission: () => Promise<string> }).requestPermission;
+      const requestOnce = () => {
+        request().then((state) => {
+          if (state === "granted") window.addEventListener("deviceorientation", onOrientation);
+        }).catch(() => {});
+        window.removeEventListener("touchstart", requestOnce);
+      };
+      window.addEventListener("touchstart", requestOnce, { once: true });
+    } else {
+      window.addEventListener("deviceorientation", onOrientation);
+    }
+
     let time = 0;
 
     const render = () => {
@@ -179,15 +213,14 @@ export default function HeroMesh() {
       ctx.globalAlpha = 1;
 
       // Subtle cursor glow
-      if (!isMobile) {
-        const cg = ctx.createRadialGradient(mx, my, 0, mx, my, mR * 0.5);
-        cg.addColorStop(0, "rgba(184, 148, 95, 0.06)");
-        cg.addColorStop(1, "rgba(184, 148, 95, 0)");
-        ctx.fillStyle = cg;
-        ctx.beginPath();
-        ctx.arc(mx, my, mR * 0.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      const glowR = isMobile ? mR * 0.8 : mR * 0.5;
+      const cg = ctx.createRadialGradient(mx, my, 0, mx, my, glowR);
+      cg.addColorStop(0, "rgba(184, 148, 95, 0.06)");
+      cg.addColorStop(1, "rgba(184, 148, 95, 0)");
+      ctx.fillStyle = cg;
+      ctx.beginPath();
+      ctx.arc(mx, my, glowR, 0, Math.PI * 2);
+      ctx.fill();
 
       animRef.current = requestAnimationFrame(render);
     };
@@ -198,6 +231,8 @@ export default function HeroMesh() {
       cancelAnimationFrame(animRef.current);
       window.removeEventListener("resize", init);
       window.removeEventListener("mousemove", onMouse);
+      window.removeEventListener("touchmove", onTouch);
+      window.removeEventListener("deviceorientation", onOrientation);
     };
   }, [mounted]);
 

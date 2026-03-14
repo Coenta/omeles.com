@@ -33,32 +33,48 @@ export default function HeroMesh() {
     const phase = new Float32Array(TOTAL);
     const isGold = new Uint8Array(TOTAL);
 
-    function init() {
-      if (!canvas) return;
-      W = canvas.clientWidth * dpr;
-      H = canvas.clientHeight * dpr;
-      canvas.width = W;
-      canvas.height = H;
+    // Normalized positions (0-1) — generated once, never randomized again
+    const normX = new Float32Array(TOTAL);
+    const normY = new Float32Array(TOTAL);
+    let initialized = false;
 
-      const spX = W / (COLS - 1);
-      const spY = H / (ROWS - 1);
-
+    function seed() {
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const i = r * COLS + c;
-          baseX[i] = c * spX + (Math.random() - 0.5) * spX * 0.25;
-          baseY[i] = r * spY + (Math.random() - 0.5) * spY * 0.25;
-          curX[i] = baseX[i];
-          curY[i] = baseY[i];
+          normX[i] = c / (COLS - 1) + (Math.random() - 0.5) * (1 / (COLS - 1)) * 0.25;
+          normY[i] = r / (ROWS - 1) + (Math.random() - 0.5) * (1 / (ROWS - 1)) * 0.25;
           depth[i] = Math.random();
           phase[i] = Math.random() * Math.PI * 2;
           isGold[i] = Math.random() < 0.15 ? 1 : 0;
         }
       }
+      initialized = true;
     }
 
-    init();
-    window.addEventListener("resize", init);
+    function resize() {
+      if (!canvas) return;
+      const newW = canvas.clientWidth * dpr;
+      const newH = canvas.clientHeight * dpr;
+      // Skip if dimensions barely changed (mobile address bar)
+      if (initialized && Math.abs(newW - W) < 2 && Math.abs(newH - H) < 50) return;
+      W = newW;
+      H = newH;
+      canvas.width = W;
+      canvas.height = H;
+
+      // Scale normalized positions to current canvas size
+      for (let i = 0; i < TOTAL; i++) {
+        baseX[i] = normX[i] * W;
+        baseY[i] = normY[i] * H;
+        curX[i] = baseX[i];
+        curY[i] = baseY[i];
+      }
+    }
+
+    seed();
+    resize();
+    window.addEventListener("resize", resize);
 
     const onMouse = (e: MouseEvent) => {
       mouseRef.current.tx = e.clientX / window.innerWidth;
@@ -229,7 +245,7 @@ export default function HeroMesh() {
 
     return () => {
       cancelAnimationFrame(animRef.current);
-      window.removeEventListener("resize", init);
+      window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", onMouse);
       window.removeEventListener("touchmove", onTouch);
       window.removeEventListener("deviceorientation", onOrientation);

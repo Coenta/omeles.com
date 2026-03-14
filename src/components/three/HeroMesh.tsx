@@ -1,0 +1,212 @@
+"use client";
+
+import { useRef, useEffect, useState } from "react";
+
+export default function HeroMesh() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animRef = useRef<number>(0);
+  const mouseRef = useRef({ x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const isMobile = window.innerWidth < 768;
+    const dpr = Math.min(window.devicePixelRatio, 2);
+    let W = 0, H = 0;
+
+    const COLS = isMobile ? 30 : 60;
+    const ROWS = isMobile ? 20 : 35;
+    const TOTAL = COLS * ROWS;
+
+    const baseX = new Float32Array(TOTAL);
+    const baseY = new Float32Array(TOTAL);
+    const curX = new Float32Array(TOTAL);
+    const curY = new Float32Array(TOTAL);
+    const depth = new Float32Array(TOTAL);
+    const phase = new Float32Array(TOTAL);
+    const isGold = new Uint8Array(TOTAL);
+
+    function init() {
+      if (!canvas) return;
+      W = canvas.clientWidth * dpr;
+      H = canvas.clientHeight * dpr;
+      canvas.width = W;
+      canvas.height = H;
+
+      const spX = W / (COLS - 1);
+      const spY = H / (ROWS - 1);
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const i = r * COLS + c;
+          baseX[i] = c * spX + (Math.random() - 0.5) * spX * 0.25;
+          baseY[i] = r * spY + (Math.random() - 0.5) * spY * 0.25;
+          curX[i] = baseX[i];
+          curY[i] = baseY[i];
+          depth[i] = Math.random();
+          phase[i] = Math.random() * Math.PI * 2;
+          isGold[i] = Math.random() < 0.15 ? 1 : 0;
+        }
+      }
+    }
+
+    init();
+    window.addEventListener("resize", init);
+
+    const onMouse = (e: MouseEvent) => {
+      mouseRef.current.tx = e.clientX / window.innerWidth;
+      mouseRef.current.ty = e.clientY / window.innerHeight;
+    };
+    window.addEventListener("mousemove", onMouse);
+
+    let time = 0;
+
+    const render = () => {
+      if (document.hidden) { animRef.current = requestAnimationFrame(render); return; }
+
+      time += 0.003;
+      const m = mouseRef.current;
+      m.x += (m.tx - m.x) * 0.02;
+      m.y += (m.ty - m.y) * 0.02;
+
+      const offX = m.x - 0.5;
+      const offY = m.y - 0.5;
+      const mx = m.x * W;
+      const my = m.y * H;
+      const mR = isMobile ? 80 : 180 * dpr;
+      const mR2 = mR * mR;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Update positions
+      for (let i = 0; i < TOTAL; i++) {
+        const bx = baseX[i], by = baseY[i], d = depth[i], p = phase[i];
+        const sp = 0.3 + d * 0.5;
+        const amp = 2 + d * 8;
+
+        const w1 = Math.sin(bx * 0.002 + time * 0.6 * sp + p) * amp;
+        const w2 = Math.cos(by * 0.0022 + time * 0.45 * sp) * (amp * 0.5);
+        const br = Math.sin(time * 0.12 + p + d * 2) * (1.5 + d * 2);
+
+        const ps = d * 0.08 + 0.005;
+        let nx = bx + w2 * 0.15 + offX * W * ps;
+        let ny = by + w1 * 0.18 + br + offY * H * ps * 0.5;
+
+        // Mouse repel
+        const dx = nx - mx, dy = ny - my;
+        const dist2 = dx * dx + dy * dy;
+        if (dist2 < mR2 && dist2 > 1) {
+          const dist = Math.sqrt(dist2);
+          const f = 1 - dist / mR;
+          const s = f * f * (3 - 2 * f);
+          const str = s * (8 + d * 15);
+          const ang = Math.atan2(dy, dx) + s * 0.2;
+          nx += Math.cos(ang) * str;
+          ny += Math.sin(ang) * str;
+        }
+
+        curX[i] = nx;
+        curY[i] = ny;
+      }
+
+      // Draw threads
+      const goldLines = new Path2D();
+      const grayLines = new Path2D();
+
+      // Horizontal
+      const hMax = (W / (COLS - 1)) * 1.5;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS - 1; c++) {
+          const i = r * COLS + c, j = i + 1;
+          if (Math.abs(depth[i] - depth[j]) > 0.4) continue;
+          const ddx = curX[j] - curX[i], ddy = curY[j] - curY[i];
+          const dd = Math.sqrt(ddx * ddx + ddy * ddy);
+          if (dd >= hMax) continue;
+          const target = (isGold[i] || isGold[j]) ? goldLines : grayLines;
+          target.moveTo(curX[i], curY[i]);
+          target.lineTo(curX[j], curY[j]);
+        }
+      }
+
+      // Vertical
+      const vMax = (H / (ROWS - 1)) * 1.5;
+      for (let r = 0; r < ROWS - 1; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const i = r * COLS + c, j = i + COLS;
+          if (Math.abs(depth[i] - depth[j]) > 0.4) continue;
+          const ddx = curX[j] - curX[i], ddy = curY[j] - curY[i];
+          const dd = Math.sqrt(ddx * ddx + ddy * ddy);
+          if (dd >= vMax) continue;
+          const target = (isGold[i] || isGold[j]) ? goldLines : grayLines;
+          target.moveTo(curX[i], curY[i]);
+          target.lineTo(curX[j], curY[j]);
+        }
+      }
+
+      ctx.lineWidth = 0.8 * dpr;
+      ctx.globalAlpha = 0.18;
+      ctx.strokeStyle = "rgba(184, 148, 95, 1)";
+      ctx.stroke(goldLines);
+      ctx.globalAlpha = 0.1;
+      ctx.strokeStyle = "rgba(0, 0, 0, 1)";
+      ctx.stroke(grayLines);
+      ctx.globalAlpha = 1;
+
+      // Draw dots
+      for (let i = 0; i < TOTAL; i++) {
+        const x = curX[i], y = curY[i], d = depth[i];
+        const size = (0.6 + d * 1.5) * dpr;
+        const alpha = 0.1 + d * 0.3;
+
+        // Mouse proximity boost
+        const mdx = x - mx, mdy = y - my;
+        const mDist2 = mdx * mdx + mdy * mdy;
+        const boost = mDist2 < mR2 ? (1 - Math.sqrt(mDist2) / mR) * 0.3 : 0;
+
+        ctx.globalAlpha = alpha + boost;
+        ctx.fillStyle = isGold[i] ? "rgba(184, 148, 95, 1)" : "rgba(0, 0, 0, 1)";
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // Subtle cursor glow
+      if (!isMobile) {
+        const cg = ctx.createRadialGradient(mx, my, 0, mx, my, mR * 0.5);
+        cg.addColorStop(0, "rgba(184, 148, 95, 0.06)");
+        cg.addColorStop(1, "rgba(184, 148, 95, 0)");
+        ctx.fillStyle = cg;
+        ctx.beginPath();
+        ctx.arc(mx, my, mR * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      animRef.current = requestAnimationFrame(render);
+    };
+
+    animRef.current = requestAnimationFrame(render);
+
+    return () => {
+      cancelAnimationFrame(animRef.current);
+      window.removeEventListener("resize", init);
+      window.removeEventListener("mousemove", onMouse);
+    };
+  }, [mounted]);
+
+  if (!mounted) return null;
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+    />
+  );
+}

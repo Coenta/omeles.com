@@ -123,9 +123,9 @@ export default function HeroSection() {
           </h1>
 
           <p className="max-w-xl mx-auto text-text-secondary text-sm md:text-base leading-relaxed">
-            Structured solutions combining identity, textiles, protection, and
-            guidance — supporting service businesses from brand expression to
-            day-to-day operations for hospitality and maritime services.
+            Maritime &amp; hospitality services — uniform and textile sourcing,
+            visual identity creation, and brand uniform solutions for the world's
+            finest operations.
           </p>
         </motion.div>
       </div>

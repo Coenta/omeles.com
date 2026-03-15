@@ -19,3 +19,5 @@ out/
 *.jpeg
 *.png
 !public/**
+
+.vercel

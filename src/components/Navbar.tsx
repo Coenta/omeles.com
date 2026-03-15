@@ -38,9 +38,10 @@ export default function Navbar() {
       <header
         className="fixed top-0 left-0 w-full"
         style={{
-          backgroundColor: `rgba(250, 250, 250, ${scrollProgress * 0.9})`,
-          backdropFilter: `blur(${scrollProgress * 12}px)`,
-          WebkitBackdropFilter: `blur(${scrollProgress * 12}px)`,
+          backgroundColor: `rgba(255, 255, 255, ${scrollProgress * 0.55})`,
+          backdropFilter: `blur(${scrollProgress * 16}px)`,
+          WebkitBackdropFilter: `blur(${scrollProgress * 16}px)`,
+          borderBottom: `1px solid rgba(255,255,255,${scrollProgress * 0.15})`,
           pointerEvents: "auto",
           zIndex: 9999,
         }}
@@ -59,9 +60,9 @@ export default function Navbar() {
                   <Image
                     src="/images/omeles_logo.png"
                     alt="OMELES"
-                    width={120}
-                    height={40}
-                    className="h-8 w-auto"
+                    width={160}
+                    height={52}
+                    className="h-11 w-auto"
                   />
                 </Link>
 
@@ -71,7 +72,7 @@ export default function Navbar() {
                   className="absolute left-1/2 -translate-x-1/2"
                   style={{ pointerEvents: "auto", zIndex: 10000 }}
                 >
-                  <span className="font-sans text-[11px] md:text-[13px] tracking-[0.45em] uppercase text-text-primary font-medium">
+                  <span className="font-sans text-[13px] md:text-[15px] tracking-[0.45em] uppercase text-text-primary font-medium">
                     O.M.E.L.E.S.
                   </span>
                 </Link>

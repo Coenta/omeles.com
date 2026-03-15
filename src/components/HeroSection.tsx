@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { getGlobalMouse } from "@/hooks/useGlobalMouse";
@@ -11,7 +11,35 @@ export default function HeroSection() {
   const contentRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const vidElRef = useRef<HTMLVideoElement>(null);
   const animRef = useRef<number>(0);
+
+  const [hovered, setHovered] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleMute = useCallback(() => {
+    if (vidElRef.current) {
+      vidElRef.current.muted = !vidElRef.current.muted;
+      setMuted(vidElRef.current.muted);
+    }
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    const container = vidElRef.current?.closest(".aspect-video") as HTMLElement;
+    if (!container) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      container.requestFullscreen();
+    }
+  }, []);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
 
   useEffect(() => {
     const mouse = getGlobalMouse();
@@ -124,8 +152,13 @@ export default function HeroSection() {
               <div className="w-2 h-2 rounded-full bg-black/15" />
             </div>
 
-            <div className="aspect-video bg-surface">
+            <div
+              className="aspect-video bg-surface relative group/video"
+              onMouseEnter={() => setHovered(true)}
+              onMouseLeave={() => setHovered(false)}
+            >
               <video
+                ref={vidElRef}
                 autoPlay
                 muted
                 loop
@@ -134,6 +167,58 @@ export default function HeroSection() {
               >
                 <source src="/videos/hero-video.mp4" type="video/mp4" />
               </video>
+
+              {/* Hover controls */}
+              <div
+                className={`absolute bottom-0 left-0 right-0 flex items-center justify-end gap-3 px-4 py-3 bg-gradient-to-t from-black/40 to-transparent transition-opacity duration-500 ${
+                  hovered ? "opacity-100" : "opacity-0"
+                }`}
+                style={{ pointerEvents: hovered ? "auto" : "none" }}
+              >
+                {/* Mute / Unmute */}
+                <button
+                  onClick={toggleMute}
+                  className="text-white/80 hover:text-white transition-colors duration-300 cursor-pointer"
+                  aria-label={muted ? "Unmute" : "Mute"}
+                >
+                  {muted ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                      <line x1="23" y1="9" x2="17" y2="15" />
+                      <line x1="17" y1="9" x2="23" y2="15" />
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                      <path d="M19.07 4.93a10 10 0 010 14.14" />
+                      <path d="M15.54 8.46a5 5 0 010 7.07" />
+                    </svg>
+                  )}
+                </button>
+
+                {/* Fullscreen */}
+                <button
+                  onClick={toggleFullscreen}
+                  className="text-white/80 hover:text-white transition-colors duration-300 cursor-pointer"
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                >
+                  {isFullscreen ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 3v3a2 2 0 01-2 2H3" />
+                      <path d="M21 8h-3a2 2 0 01-2-2V3" />
+                      <path d="M3 16h3a2 2 0 012 2v3" />
+                      <path d="M16 21v-3a2 2 0 012-2h3" />
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 3H5a2 2 0 00-2 2v3" />
+                      <path d="M21 8V5a2 2 0 00-2-2h-3" />
+                      <path d="M3 16v3a2 2 0 002 2h3" />
+                      <path d="M16 21h3a2 2 0 002-2v-3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="absolute top-0 left-0 w-8 h-8 border-t border-l border-gold/40" />

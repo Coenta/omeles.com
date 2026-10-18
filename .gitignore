@@ -21,3 +21,7 @@ out/
 !public/**
 
 .vercel
+
+# Editor settings and TypeScript incremental build state
+.vscode/
+*.tsbuildinfo

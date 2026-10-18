@@ -27,6 +27,16 @@ ayrıntıyı açıklama satırına yaz.
 
 ## Açık
 
+### güvenlik
+
+- [ ] ! Bağımlılıklarda 74 güvenlik açığı (4 kritik, 33 yüksek)
+      18 Eki 2026'da GitHub push sırasında raporladı (Dependabot,
+      github.com/Coenta/omeles.com/security/dependabot): 4 kritik, 33 yüksek,
+      32 orta, 5 düşük. Site Vercel'de yayında (omelescom.vercel.app). Önce
+      kritik/yüksekleri incele: `npm audit`, doğrudan bağımlılıkları güncelle,
+      build + sayfa kontrolüyle doğrula; yalnız dolaylı/geliştirme
+      bağımlılığında kalanları ayrıca not et.
+
 ---
 
 ## Kapandı

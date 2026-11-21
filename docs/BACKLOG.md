@@ -27,16 +27,20 @@ ayrıntıyı açıklama satırına yaz.
 
 ## Açık
 
+---
+
+## Kapandı
+
 ### güvenlik
 
-- [ ] ! Bağımlılıklarda 74 güvenlik açığı (4 kritik, 33 yüksek)
+- [x] ! Bağımlılıklarda 74 güvenlik açığı (4 kritik, 33 yüksek)
       18 Eki 2026'da GitHub push sırasında raporladı (Dependabot,
       github.com/Coenta/omeles.com/security/dependabot): 4 kritik, 33 yüksek,
       32 orta, 5 düşük. Site Vercel'de yayında (omelescom.vercel.app). Önce
       kritik/yüksekleri incele: `npm audit`, doğrudan bağımlılıkları güncelle,
       build + sayfa kontrolüyle doğrula; yalnız dolaylı/geliştirme
       bağımlılığında kalanları ayrıca not et.
+      21 Kas 2026: `npm audit fix` + postcss 8.5.33 ve eslint 9.39.5 (sabit
+      sürümleri açıkları taşıyordu); next 16.1.6 → 16.4.6. `npm audit` 0 açık,
+      build ve tüm sayfalar (200, tarayıcı hatası yok) denendi.
 
----
-
-## Kapandı
